@@ -40,29 +40,83 @@ textarea:focus{border-color:#FF6B35}
 </div>
 <script>
 var API='https://1446882229-dbqcldfaez.ap-guangzhou.tencentscf.com';
+var TIMEOUT = 10000; // 10秒超时
 
+// 优化：提取链接并过滤末尾标点
 function extractUrl(t){
   var m = t.match(/https?:\/\/\S+/);
-  return m ? m[0] : null;
+  if(!m) return null;
+  // 移除末尾的中英文标点
+  return m[0].replace(/[。，、！？；：,.;:!?]+$/, '');
 }
 
 function search(){
-var raw=document.getElementById('input').value.trim();
-var r=document.getElementById('result');
-if(!raw){r.style.display='block';r.className='result error';r.innerHTML='请粘贴内容';return}
-var url=extractUrl(raw);
-if(!url){r.style.display='block';r.className='result error';r.innerHTML='未找到有效链接';return}
-r.style.display='none';
-var cb='jsonp_'+Date.now();
-window[cb]=function(d){
-delete window[cb];r.style.display='block';
-if(d.error){r.className='result error';r.innerHTML=d.error}
-else{r.className='result';r.innerHTML='<p style="font-weight:bold;color:#333;margin-bottom:8px">🎫 商家券已找到！</p><a href="'+d.v8+'" target="_blank">👉 入口1（v8版）</a><a href="'+d.v6+'" target="_blank">👉 入口2（v6备用）</a>'}
-};
-var s=document.createElement('script');
-s.src=API+'?url='+encodeURIComponent(url)+'&callback='+cb;
-s.onerror=function(){r.style.display='block';r.className='result error';r.innerHTML='查询失败，请重试';delete window[cb]};
-document.body.appendChild(s)
+  var raw=document.getElementById('input').value.trim();
+  var r=document.getElementById('result');
+  var timer = null;
+
+  // 每次查询先清空旧内容
+  r.innerHTML='';
+
+  if(!raw){
+    r.style.display='block';
+    r.className='result error';
+    r.innerHTML='请粘贴内容';
+    return;
+  }
+
+  var url=extractUrl(raw);
+  if(!url){
+    r.style.display='block';
+    r.className='result error';
+    r.innerHTML='未找到有效链接';
+    return;
+  }
+
+  // 超长链接拦截
+  if(url.length > 2048){
+    r.style.display='block';
+    r.className='result error';
+    r.innerHTML='链接过长，请重新复制';
+    return;
+  }
+
+  // 显示查询中提示
+  r.style.display='block';
+  r.className='result';
+  r.innerHTML='<p style="color:#666">⏳ 查询中，请稍候...</p>';
+
+  // 回调名：时间戳+随机数，substr 替换为 slice
+  var cb='jsonp_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
+
+  // 超时处理
+  timer = setTimeout(function(){
+    window[cb] && delete window[cb];
+    r.className='result error';
+    r.innerHTML='查询超时，请稍后重试';
+  }, TIMEOUT);
+
+  window[cb]=function(d){
+    clearTimeout(timer);
+    delete window[cb];
+    if(d.error){
+      r.className='result error';
+      r.innerHTML=d.error;
+    } else {
+      r.className='result';
+      r.innerHTML='<p style="font-weight:bold;color:#333;margin-bottom:8px">🎫 商家券已找到！</p><a href="'+d.v8+'" target="_blank">👉 入口1（v8版）</a><a href="'+d.v6+'" target="_blank">👉 入口2（v6备用）</a>';
+    }
+  };
+
+  var s=document.createElement('script');
+  s.src=API+'?url='+encodeURIComponent(url)+'&callback='+cb;
+  s.onerror=function(){
+    clearTimeout(timer);
+    r.className='result error';
+    r.innerHTML='查询失败，请重试';
+    delete window[cb];
+  };
+  document.body.appendChild(s);
 }
 </script>
 </body>
