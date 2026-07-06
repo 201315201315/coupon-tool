@@ -22,6 +22,10 @@ textarea:focus{border-color:#FF6B35}
 .result a:last-child{border-bottom:none}
 .result.error{background:#fff0f0;border-left-color:#e74c3c;color:#e74c3c}
 .tips{text-align:center;font-size:12px;color:#bbb;margin-top:12px}
+.shortTool{background:#fff;padding:14px;border-radius:10px;margin-bottom:14px}
+.shortInput{width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;margin-bottom:8px}
+.shortBtn{padding:8px 16px;background:#FF6B35;color:#fff;border:none;border-radius:6px}
+.descTip{font-size:12px;color:#999;margin-top:6px}
 </style>
 </head>
 <body>
@@ -30,93 +34,101 @@ textarea:focus{border-color:#FF6B35}
 <div class="slogan">粘贴店铺链接，自动查隐藏券</div>
 </div>
 <div class="main">
+<div class="shortTool">
+<div class="card-title">🔗 短链本地展开兜底工具</div>
+<input class="shortInput" id="shortInput" placeholder="粘贴dpur1.cn等小众短链">
+<button class="shortBtn" onclick="localExpandShort()">一键展开填入查询框</button>
+<p class="descTip">浏览器本地网络解析，规避云函数外网拦截限制</p>
+</div>
 <div class="card">
 <div class="card-title">📎 粘贴链接</div>
-<textarea id="input" placeholder="粘贴文字或链接均可"></textarea>
-<button class="btn" onclick="search()">🔍 立即查询</button>
+<textarea id="contentInput" placeholder="粘贴带店铺链接的文字即可"></textarea>
+<button class="btn" onclick="startSearch()">🔍 立即查询</button>
 </div>
-<div id="result" class="result"></div>
-<div class="tips">两个入口任选，每天共可领5张券</div>
+<div id="resultBox" class="result"></div>
+<div class="tips">两个领券入口任选，每日合计可领5张商家券</div>
 </div>
 <script>
-var API='https://1446882229-dbqcldfaez.ap-guangzhou.tencentscf.com';
-var TIMEOUT = 10000; // 10秒超时
+const API_URL = 'https://1446882229-dbqcldfaez.ap-guangzhou.tencentscf.com';
+const REQUEST_TIMEOUT = 10000;
 
-// 优化：提取链接并过滤末尾标点
-function extractUrl(t){
-  var m = t.match(/https?:\/\/\S+/);
-  if(!m) return null;
-  // 移除末尾的中英文标点
-  return m[0].replace(/[。，、！？；：,.;:!?]+$/, '');
+async function localExpandShort() {
+    const shortVal = document.getElementById('shortInput').value.trim();
+    if (!shortVal) return alert('请输入短链地址');
+    try {
+        const resp = await fetch(shortVal, { redirect: 'follow' });
+        const realUrl = resp.url;
+        document.getElementById('contentInput').value = realUrl;
+        alert('展开完成！真实店铺链接已自动填入上方输入框，直接点击查询即可');
+    } catch (err) {
+        alert('本地展开失败，请复制短链到手机系统浏览器打开，复制页面地址再粘贴');
+    }
 }
 
-function search(){
-  var raw=document.getElementById('input').value.trim();
-  var r=document.getElementById('result');
-  var timer = null;
+function getPureLink(text) {
+    const matchResult = text.match(/https?:\/\/\S+/);
+    if (!matchResult) return null;
+    // 已修正：移除多余中文顿号，防止误伤URL参数
+    return matchResult[0].replace(/[。，！？；：,.;:!?]+$/, '');
+}
 
-  // 每次查询先清空旧内容
-  r.innerHTML='';
-
-  if(!raw){
-    r.style.display='block';
-    r.className='result error';
-    r.innerHTML='请粘贴内容';
-    return;
-  }
-
-  var url=extractUrl(raw);
-  if(!url){
-    r.style.display='block';
-    r.className='result error';
-    r.innerHTML='未找到有效链接';
-    return;
-  }
-
-  // 超长链接拦截
-  if(url.length > 2048){
-    r.style.display='block';
-    r.className='result error';
-    r.innerHTML='链接过长，请重新复制';
-    return;
-  }
-
-  // 显示查询中提示
-  r.style.display='block';
-  r.className='result';
-  r.innerHTML='<p style="color:#666">⏳ 查询中，请稍候...</p>';
-
-  // 回调名：时间戳+随机数，substr 替换为 slice
-  var cb='jsonp_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
-
-  // 超时处理
-  timer = setTimeout(function(){
-    window[cb] && delete window[cb];
-    r.className='result error';
-    r.innerHTML='查询超时，请稍后重试';
-  }, TIMEOUT);
-
-  window[cb]=function(d){
-    clearTimeout(timer);
-    delete window[cb];
-    if(d.error){
-      r.className='result error';
-      r.innerHTML=d.error;
-    } else {
-      r.className='result';
-      r.innerHTML='<p style="font-weight:bold;color:#333;margin-bottom:8px">🎫 商家券已找到！</p><a href="'+d.v8+'" target="_blank">👉 入口1（v8版）</a><a href="'+d.v6+'" target="_blank">👉 入口2（v6备用）</a>';
+function startSearch() {
+    const inputText = document.getElementById('contentInput').value.trim();
+    const resultDom = document.getElementById('resultBox');
+    let timerId = null;
+    resultDom.innerHTML = '';
+    if (!inputText) {
+        resultDom.style.display = 'block';
+        resultDom.className = 'result error';
+        resultDom.innerHTML = '请粘贴包含店铺链接的内容';
+        return;
     }
-  };
-
-  var s=document.createElement('script');
-  s.src=API+'?url='+encodeURIComponent(url)+'&callback='+cb;
-  s.onerror=function(){
-    clearTimeout(timer);
-    r.className='result error';
-    r.innerHTML='查询失败，请重试';
-    delete window[cb];
-  };
-  document.body.appendChild(s);
+    const targetUrl = getPureLink(inputText);
+    if (!targetUrl) {
+        resultDom.style.display = 'block';
+        resultDom.className = 'result error';
+        resultDom.innerHTML = '未识别到有效网页链接';
+        return;
+    }
+    if (targetUrl.length > 2048) {
+        resultDom.style.display = 'block';
+        resultDom.className = 'result error';
+        resultDom.innerHTML = '链接长度超限，请重新复制';
+        return;
+    }
+    resultDom.style.display = 'block';
+    resultDom.className = 'result';
+    resultDom.innerHTML = '<p style="color:#666">⏳ 正在解析店铺信息，请稍候...</p>';
+    const callbackName = 'jsonp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+    timerId = setTimeout(() => {
+        delete window[callbackName];
+        resultDom.className = 'result error';
+        resultDom.innerHTML = '请求超时，小众短链请使用上方短链展开工具';
+    }, REQUEST_TIMEOUT);
+    window[callbackName] = function (resData) {
+        clearTimeout(timerId);
+        delete window[callbackName];
+        if (resData.error) {
+            resultDom.className = 'result error';
+            resultDom.innerHTML = resData.error + '<br><small>提示：dpur1.cn类短链请使用顶部本地展开工具</small>';
+        } else {
+            resultDom.className = 'result';
+            resultDom.innerHTML = `
+                <p style="font-weight:bold;color:#333;margin-bottom:8px">🎫 商家券已找到！</p>
+                <a href="${resData.v8}" target="_blank">👉 领取通道1（v8标准版）</a>
+                <a href="${resData.v6}" target="_blank">👉 领取通道2（v6备用版）</a>
+            `;
+        }
+    };
+    const scriptTag = document.createElement('script');
+    scriptTag.src = `${API_URL}?url=${encodeURIComponent(targetUrl)}&callback=${callbackName}`;
+    scriptTag.onerror = function () {
+        clearTimeout(timerId);
+        delete window[callbackName];
+        resultDom.className = 'result error';
+        resultDom.innerHTML = '接口请求失败，请使用上方短链本地展开工具';
+    };
+    document.body.appendChild(scriptTag);
 }
 </script>
 </body>
