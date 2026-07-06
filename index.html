@@ -7,6 +7,19 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f5f5f5;min-height:100vh}
+
+/* 微信环境顶部提示条 */
+.wechat-tip{
+  display:none;
+  background:#e74c3c;
+  color:#fff;
+  padding:10px 15px;
+  font-size:13px;
+  line-height:1.5;
+  text-align:center;
+}
+.wechat-tip strong{color:#ffe082}
+
 .header{background:linear-gradient(135deg,#FF6B35,#FF8C42);padding:20px;text-align:center;color:#fff}
 .logo{font-size:28px;font-weight:bold;margin-bottom:4px}
 .slogan{font-size:13px;opacity:0.9}
@@ -22,113 +35,201 @@ textarea:focus{border-color:#FF6B35}
 .result a:last-child{border-bottom:none}
 .result.error{background:#fff0f0;border-left-color:#e74c3c;color:#e74c3c}
 .tips{text-align:center;font-size:12px;color:#bbb;margin-top:12px}
-.shortTool{background:#fff;padding:14px;border-radius:10px;margin-bottom:14px}
-.shortInput{width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;margin-bottom:8px}
-.shortBtn{padding:8px 16px;background:#FF6B35;color:#fff;border:none;border-radius:6px}
-.descTip{font-size:12px;color:#999;margin-top:6px}
+
+/* 特殊短链专属入口 */
+.special-entry{
+  border:2px solid #FF6B35;
+  border-radius:12px;
+  padding:16px;
+  background:#fff7f3;
+  margin-bottom:15px;
+}
+.special-title{
+  font-size:16px;
+  font-weight:bold;
+  color:#FF6B35;
+  margin-bottom:10px;
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.special-input{
+  width:100%;
+  padding:10px;
+  border:1px solid #ffd1bf;
+  border-radius:8px;
+  margin-bottom:10px;
+  font-size:14px;
+  background:#fff;
+}
+.special-btn{
+  width:100%;
+  height:42px;
+  background:#FF6B35;
+  color:#fff;
+  border:none;
+  border-radius:8px;
+  font-size:15px;
+  font-weight:bold;
+  cursor:pointer;
+}
+.special-desc{
+  font-size:12px;
+  color:#999;
+  margin-top:8px;
+  line-height:1.4;
+}
 </style>
 </head>
 <body>
+
+<!-- 微信环境专属提示条，微信打开自动显示 -->
+<div class="wechat-tip" id="wechatTip">
+  <strong>微信内提示：</strong>小众短链无法自动展开，请点击右上角「...」选择「在浏览器打开」后使用短链功能；原生美团链接可直接查询
+</div>
+
 <div class="header">
 <div class="logo">🎫 美团商家券查询</div>
 <div class="slogan">粘贴店铺链接，自动查隐藏券</div>
 </div>
 <div class="main">
-<div class="shortTool">
-<div class="card-title">🔗 短链本地展开兜底工具</div>
-<input class="shortInput" id="shortInput" placeholder="粘贴dpur1.cn等小众短链">
-<button class="shortBtn" onclick="localExpandShort()">一键展开填入查询框</button>
-<p class="descTip">浏览器本地网络解析，规避云函数外网拦截限制</p>
+
+<!-- 特殊短链专属解析入口：支持整段文案自动识别短链 -->
+<div class="special-entry">
+  <div class="special-title">🔴 特殊短链专属解析入口</div>
+  <input class="special-input" id="shortInput" placeholder="粘贴整段分享文案或纯短链均可，支持肯德基/瑞幸等所有店铺">
+  <button class="special-btn" onclick="localExpandShort()">一键展开并填入查询</button>
+  <p class="special-desc">自动从文案中提取短链，本地解析绕过云函数拦截，兼容所有小众短链域名</p>
 </div>
+
 <div class="card">
-<div class="card-title">📎 粘贴链接</div>
-<textarea id="contentInput" placeholder="粘贴带店铺链接的文字即可"></textarea>
+<div class="card-title">📎 普通链接查询</div>
+<textarea id="contentInput" placeholder="粘贴带店铺链接的文字即可，支持美团原生链接"></textarea>
 <button class="btn" onclick="startSearch()">🔍 立即查询</button>
 </div>
 <div id="resultBox" class="result"></div>
 <div class="tips">两个领券入口任选，每日合计可领5张商家券</div>
 </div>
+
 <script>
 const API_URL = 'https://1446882229-dbqcldfaez.ap-guangzhou.tencentscf.com';
 const REQUEST_TIMEOUT = 10000;
 
+// 检测是否为微信内置浏览器
+function isWeChatBrowser() {
+  const ua = navigator.userAgent.toLowerCase();
+  return /micromessenger/i.test(ua);
+}
+
+// 页面加载完成后，微信环境自动显示顶部提示
+window.onload = function() {
+  if (isWeChatBrowser()) {
+    document.getElementById('wechatTip').style.display = 'block';
+  }
+};
+
+// 统一链接提取函数：自动从任意文本中提取链接，过滤末尾标点
+function extractPureLink(text) {
+  const matchResult = text.match(/https?:\/\/\S+/);
+  if (!matchResult) return null;
+  return matchResult[0].replace(/[。，！？；：,.;:!?]+$/, '');
+}
+
+// 短链本地展开
 async function localExpandShort() {
-    const shortVal = document.getElementById('shortInput').value.trim();
-    if (!shortVal) return alert('请输入短链地址');
-    try {
-        const resp = await fetch(shortVal, { redirect: 'follow' });
-        const realUrl = resp.url;
-        document.getElementById('contentInput').value = realUrl;
-        alert('展开完成！真实店铺链接已自动填入上方输入框，直接点击查询即可');
-    } catch (err) {
-        alert('本地展开失败，请复制短链到手机系统浏览器打开，复制页面地址再粘贴');
+  const inputVal = document.getElementById('shortInput').value.trim();
+  if (!inputVal) return alert('请粘贴分享文案或短链');
+  
+  let shortUrl = extractPureLink(inputVal);
+  if (!shortUrl) return alert('未识别到有效链接，请检查输入内容');
+
+  // 微信环境弹出指定提示
+  if (isWeChatBrowser()) {
+    alert('由于微信协议限制，请你点击右上角三个点到浏览器尝试');
+    return;
+  }
+
+  // 自动转HTTPS，绕过浏览器混合内容拦截
+  shortUrl = shortUrl.replace(/^http:\/\//i, 'https://');
+  
+  try {
+    const resp = await fetch(shortUrl, { redirect: 'follow' });
+    const realUrl = resp.url;
+    document.getElementById('contentInput').value = realUrl;
+    alert('展开成功！真实店铺链接已自动填入下方查询框，点击立即查询即可');
+  } catch (err) {
+    const isConfirm = window.confirm('自动展开失败，是否复制短链并在新窗口打开？\n打开后复制页面地址，粘贴回下方查询框即可使用');
+    if (isConfirm) {
+      navigator.clipboard.writeText(shortUrl).then(() => {
+        window.open(shortUrl, '_blank');
+      });
     }
+  }
 }
 
-function getPureLink(text) {
-    const matchResult = text.match(/https?:\/\/\S+/);
-    if (!matchResult) return null;
-    // 已修正：移除多余中文顿号，防止误伤URL参数
-    return matchResult[0].replace(/[。，！？；：,.;:!?]+$/, '');
-}
-
+// 主查询逻辑
 function startSearch() {
-    const inputText = document.getElementById('contentInput').value.trim();
-    const resultDom = document.getElementById('resultBox');
-    let timerId = null;
-    resultDom.innerHTML = '';
-    if (!inputText) {
-        resultDom.style.display = 'block';
-        resultDom.className = 'result error';
-        resultDom.innerHTML = '请粘贴包含店铺链接的内容';
-        return;
-    }
-    const targetUrl = getPureLink(inputText);
-    if (!targetUrl) {
-        resultDom.style.display = 'block';
-        resultDom.className = 'result error';
-        resultDom.innerHTML = '未识别到有效网页链接';
-        return;
-    }
-    if (targetUrl.length > 2048) {
-        resultDom.style.display = 'block';
-        resultDom.className = 'result error';
-        resultDom.innerHTML = '链接长度超限，请重新复制';
-        return;
-    }
+  const inputText = document.getElementById('contentInput').value.trim();
+  const resultDom = document.getElementById('resultBox');
+  let timerId = null;
+  resultDom.innerHTML = '';
+
+  if (!inputText) {
     resultDom.style.display = 'block';
-    resultDom.className = 'result';
-    resultDom.innerHTML = '<p style="color:#666">⏳ 正在解析店铺信息，请稍候...</p>';
-    const callbackName = 'jsonp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
-    timerId = setTimeout(() => {
-        delete window[callbackName];
-        resultDom.className = 'result error';
-        resultDom.innerHTML = '请求超时，小众短链请使用上方短链展开工具';
-    }, REQUEST_TIMEOUT);
-    window[callbackName] = function (resData) {
-        clearTimeout(timerId);
-        delete window[callbackName];
-        if (resData.error) {
-            resultDom.className = 'result error';
-            resultDom.innerHTML = resData.error + '<br><small>提示：dpur1.cn类短链请使用顶部本地展开工具</small>';
-        } else {
-            resultDom.className = 'result';
-            resultDom.innerHTML = `
-                <p style="font-weight:bold;color:#333;margin-bottom:8px">🎫 商家券已找到！</p>
-                <a href="${resData.v8}" target="_blank">👉 领取通道1（v8标准版）</a>
-                <a href="${resData.v6}" target="_blank">👉 领取通道2（v6备用版）</a>
-            `;
-        }
-    };
-    const scriptTag = document.createElement('script');
-    scriptTag.src = `${API_URL}?url=${encodeURIComponent(targetUrl)}&callback=${callbackName}`;
-    scriptTag.onerror = function () {
-        clearTimeout(timerId);
-        delete window[callbackName];
-        resultDom.className = 'result error';
-        resultDom.innerHTML = '接口请求失败，请使用上方短链本地展开工具';
-    };
-    document.body.appendChild(scriptTag);
+    resultDom.className = 'result error';
+    resultDom.innerHTML = '请粘贴包含店铺链接的内容';
+    return;
+  }
+  const targetUrl = extractPureLink(inputText);
+  if (!targetUrl) {
+    resultDom.style.display = 'block';
+    resultDom.className = 'result error';
+    resultDom.innerHTML = '未识别到有效网页链接';
+    return;
+  }
+  if (targetUrl.length > 2048) {
+    resultDom.style.display = 'block';
+    resultDom.className = 'result error';
+    resultDom.innerHTML = '链接长度超限，请重新复制';
+    return;
+  }
+
+  resultDom.style.display = 'block';
+  resultDom.className = 'result';
+  resultDom.innerHTML = '<p style="color:#666">⏳ 正在解析店铺信息，请稍候...</p>';
+
+  const callbackName = 'jsonp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+  timerId = setTimeout(() => {
+    delete window[callbackName];
+    resultDom.className = 'result error';
+    resultDom.innerHTML = '请求超时，特殊短链请使用顶部专属入口解析';
+  }, REQUEST_TIMEOUT);
+
+  window[callbackName] = function (resData) {
+    clearTimeout(timerId);
+    delete window[callbackName];
+    if (resData.error) {
+      resultDom.className = 'result error';
+      resultDom.innerHTML = resData.error + '<br><small>提示：小众短链请使用顶部专属入口</small>';
+    } else {
+      resultDom.className = 'result';
+      resultDom.innerHTML = `
+        <p style="font-weight:bold;color:#333;margin-bottom:8px">🎫 商家券已找到！</p>
+        <a href="${resData.v8}" target="_blank">👉 领取通道1（v8标准版）</a>
+        <a href="${resData.v6}" target="_blank">👉 领取通道2（v6备用版）</a>
+      `;
+    }
+  };
+
+  const scriptTag = document.createElement('script');
+  scriptTag.src = `${API_URL}?url=${encodeURIComponent(targetUrl)}&callback=${callbackName}`;
+  scriptTag.onerror = function () {
+    clearTimeout(timerId);
+    delete window[callbackName];
+    resultDom.className = 'result error';
+    resultDom.innerHTML = '接口请求失败，请使用顶部短链专属入口';
+  };
+  document.body.appendChild(scriptTag);
 }
 </script>
 </body>
