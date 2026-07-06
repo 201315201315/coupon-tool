@@ -40,7 +40,12 @@ textarea:focus{border-color:#FF6B35}
 </div>
 <script>
 var API='https://1446882229-dbqcldfaez.ap-guangzhou.tencentscf.com';
-function extractUrl(t){var m=t.match(/https?:\/\/[^\s]+/);return m?m[0]:null}
+
+function extractUrl(t){
+  var m = t.match(/https?:\/\/\S+/);
+  return m ? m[0] : null;
+}
+
 function search(){
 var raw=document.getElementById('input').value.trim();
 var r=document.getElementById('result');
