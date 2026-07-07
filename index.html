@@ -16,7 +16,6 @@
     .result-box { margin-top: 24px; padding: 18px; border-radius: 10px; background: #f5f5f5; line-height: 2; }
     .success { color: #009440; font-weight: 500; }
     .error { color: #d62828; font-weight: 500; }
-    .loading { color: #666; }
     a { color: #0066cc; word-break: break-all; text-decoration: none; }
     .tip { margin-top: 20px; font-size: 13px; color: #888; text-align: center; }
   </style>
@@ -29,119 +28,68 @@
   <textarea id="inputText" placeholder="粘贴整段美团外卖分享文案（文字+短链接）"></textarea>
   <button onclick="runParse()">立即查询</button>
   <div id="resultBox" class="result-box"></div>
-  <p class="tip">纯本地前端解析，无服务器风控拦截；微信打开请右上角「在浏览器打开」</p>
+  <p class="tip">全链路云函数解析，普通链接秒过，风控链接智能兜底</p>
 
   <script>
     const V8_BASE = "https://offsiteact.meituan.com/web/hoae/collection_waimai_v8/index.html?recallBizId=cpsH5Coupon&bizId=dd7f2bd8f54b472ab349af75a9f62e63&mediumSrc1=dd7f2bd8f54b472ab349af75a9f62e63&scene=CPS_SELF_SRC&pageSrc1=CPS_SELF_OUT_SRC_H5_LINK&pageSrc2=dd7f2bd8f54b472ab349af75a9f62e63&pageSrc3=2ab9837e9eda46d19583c906662cc9ae&activityId=6&mediaPvId=dafkdsajffjafdfs&mediaUserId=10086&outActivityId=6&hoaePageV=8&p=83e980d845644a279e2ff4aefe3bf5e8&poi_id_str=";
     const V6_BASE = "https://offsiteact.meituan.com/web/hoae/collection_waimai_v6/index.html?recallBizId=cpsH5Coupon&bizId=dd7f2bd8f54b472ab349af75a9f62e63&mediumSrc1=dd7f2bd8f54b472ab349af75a9f62e63&scene=CPS_SELF_SRC&pageSrc1=CPS_SELF_OUT_SRC_H5_LINK&pageSrc2=dd7f2bd8f54b472ab349af75a9f62e63&pageSrc3=2ab9837e9eda46d19583c906662cc9ae&activityId=6&mediaPvId=dafkdsajffjafdfs&mediaUserId=10086&outActivityId=6&hoaePageV=8&p=83e980d845644a279e2ff4aefe3bf5e8&poi_id_str=";
+    const CLOUD_URL = "https://1446882229-dbqcldfaez.ap-guangzhou.tencentscf.com";
     const resultBox = document.getElementById("resultBox");
-    // 多备用跨域代理，一个失效自动切换下一个
-    const proxyList = [
-      "https://api.allorigins.win/get?url=",
-      "https://corsproxy.io/?",
-      "https://api.codetabs.com/v1/proxy?quest="
-    ];
 
-    // 提取文本内链接
-    function getUrl(text) {
-      const match = text.match(/https?:\/\/\S+/);
-      return match ? match[0].replace(/[。，、！？；：,.;:!?]+$/, "") : "";
+    // 调用云函数（JSONP方式）
+    function callCloud(text) {
+      return new Promise((resolve) => {
+        const cb = 'jsonp_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
+        const script = document.createElement('script');
+        script.src = `${CLOUD_URL}?url=${encodeURIComponent(text)}&callback=${cb}`;
+        const timer = setTimeout(() => {
+          delete window[cb];
+          script.remove();
+          resolve(null);
+        }, 15000);
+        window[cb] = function(data) {
+          clearTimeout(timer);
+          delete window[cb];
+          script.remove();
+          resolve(data);
+        };
+        document.body.appendChild(script);
+      });
     }
-    // 提取「」包裹店名
+
+    // 提取店名（用于展示）
     function getName(text) {
       let m = text.match(/「([^」]+)」/);
-      if(!m) m = text.match(/【([^】]+)】/);
-      if(!m) return "";
-      return m[1].trim().replace(/^[.·]+/, "");
-    }
-    // 从页面文本提取POI ID
-    function matchPoi(text) {
-      const rules = [/poi_id_str=(\d+)/, /\/shop\/(\d+)/, /poiId["':\s]+(\d+)/, /poi_id["':\s]+(\d+)/];
-      for(let r of rules) {
-        const res = text.match(r);
-        if(res && res[1]) return res[1];
-      }
-      return "";
-    }
-
-    // 带超时、多代理轮询请求
-    async function fetchData(targetUrl) {
-      let lastError = null;
-      // 循环切换所有代理尝试
-      for(let proxy of proxyList) {
-        const fullUrl = proxy + encodeURIComponent(targetUrl);
-        try {
-          // 8秒超时，超时直接抛弃当前代理
-          const controller = new AbortController();
-          const timer = setTimeout(() => controller.abort(), 8000);
-          const res = await fetch(fullUrl, { signal: controller.signal });
-          clearTimeout(timer);
-          if(res.ok) return await res.json();
-        } catch(e) {
-          lastError = e;
-          continue;
-        }
-      }
-      throw lastError || new Error("所有跨域代理均访问超时");
-    }
-
-    // 按店名搜索门店ID
-    async function searchByName(name) {
-      const keyword = encodeURIComponent(name);
-      const api = `https://apimobile.meituan.com/waimai/search/v2/search?keyword=${keyword}&limit=1`;
-      try {
-        const json = await fetchData(api);
-        const data = JSON.parse(json.contents);
-        if(data?.data?.poiList?.length) return String(data.data.poiList[0].poiId);
-      } catch(e) {}
-      // 降级网页搜索
-      try {
-        const page = await fetchData(`https://waimai.meituan.com/s/${keyword}`);
-        return matchPoi(page.contents);
-      } catch(e) { return ""; }
+      if (!m) m = text.match(/【([^】]+)】/);
+      if (m) return m[1].trim().replace(/^[.·]+/, "");
+      const shopPattern = /([\u4e00-\u9fa5]{2,20}(?:店|馆|铺|咖啡|奶茶|茶饮|烧烤|火锅|小吃|料理|酒楼|餐厅|食堂))/;
+      const shopMatch = text.match(shopPattern);
+      return shopMatch ? shopMatch[1].trim() : "";
     }
 
     async function runParse() {
       const text = document.getElementById("inputText").value.trim();
-      resultBox.innerHTML = `<p class="loading">⏳ 解析中，请稍候...</p>`;
+      resultBox.innerHTML = "⏳ 解析中，请稍候...";
       if(!text) {
         resultBox.innerHTML = `<p class="error">❌ 请粘贴完整分享文案</p>`;
         return;
       }
-      const shareUrl = getUrl(text);
+
       const shopName = getName(text);
-      let poiId = "", way = "";
-      // 1. 短链直接解析
-      if(shareUrl) {
-        try {
-          const res = await fetchData(shareUrl);
-          poiId = matchPoi(res.contents);
-          if(poiId) way = "短链直接提取";
-        } catch(e) {}
-      }
-      // 2. 店名兜底搜索
-      if(!poiId && shopName) {
-        poiId = await searchByName(shopName);
-        if(poiId) way = "店名API兜底匹配";
-        else {
-          const shortName = shopName.split("(")[0].split("（")[0];
-          poiId = await searchByName(shortName);
-          if(poiId) way = "精简店名兜底匹配";
-        }
-      }
-      // 输出结果
-      if(poiId) {
+      const cloudRes = await callCloud(text);
+
+      if (cloudRes && cloudRes.code === 0) {
         resultBox.innerHTML = `
-          <p class="success">✅ 解析成功（${way}）</p>
-          <p>店铺名称：${shopName}</p>
-          <p>领券入口V8：<a target="_blank" href="${V8_BASE + poiId}">${V8_BASE + poiId}</a></p>
-          <p>领券入口V6：<a target="_blank" href="${V6_BASE + poiId}">${V6_BASE + poiId}</a></p>
+          <p class="success">✅ 解析成功（${cloudRes.parseWay || '云函数解析'}）</p>
+          <p>店铺名称：${cloudRes.shopName || shopName || '未提取到店名'}</p>
+          <p>领券入口V8：<a target="_blank" href="${V8_BASE + cloudRes.shopId}">点我领取</a></p>
+          <p>领券入口V6：<a target="_blank" href="${V6_BASE + cloudRes.shopId}">点我领取</a></p>
         `;
       } else {
         resultBox.innerHTML = `
-          <p class="error">❌ 未识别到店铺ID / 网络请求超时</p>
-          <p>提取店名：${shopName}</p>
-          <p>解决方法：1. 复制链接到手机自带浏览器/夸克/UC打开；2. 换一条分享文案重试</p>
+          <p class="error">❌ 解析失败，请检查链接或稍后重试</p>
+          <p>提取店名：${shopName || '未提取到店名'}</p>
+          <p>提示：微信内置浏览器有限制，建议用手机系统浏览器打开</p>
         `;
       }
     }
