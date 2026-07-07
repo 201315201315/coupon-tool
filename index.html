@@ -1,112 +1,127 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>美团商家券查询</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f5f5f5;min-height:100vh}
-.header{background:linear-gradient(135deg,#FF6B35,#FF8C42);padding:20px;text-align:center;color:#fff}
-.logo{font-size:28px;font-weight:bold;margin-bottom:4px}
-.slogan{font-size:13px;opacity:0.9}
-.main{padding:15px}
-.card{background:#fff;border-radius:12px;padding:20px;margin-bottom:15px;box-shadow:0 2px 12px rgba(0,0,0,0.06)}
-.card-title{font-size:16px;font-weight:bold;color:#333;margin-bottom:12px}
-textarea{width:100%;height:100px;border:1px solid #e8e8e8;border-radius:8px;padding:12px;font-size:14px;resize:vertical;outline:none;background:#fafafa}
-textarea:focus{border-color:#FF6B35}
-.btn{width:100%;height:48px;background:linear-gradient(135deg,#FF6B35,#FF8C42);color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:bold;cursor:pointer;margin-top:12px}
-.btn:active{opacity:0.85}
-.result{margin-top:15px;padding:16px;background:#f9f9f9;border-radius:8px;border-left:4px solid #FF6B35;display:none}
-.result a{color:#FF6B35;text-decoration:none;font-weight:bold;display:block;padding:10px 0;border-bottom:1px dashed #eee;font-size:15px}
-.result a:last-of-type{border-bottom:none}
-.result.error{background:#fff0f0;border-left-color:#e74c3c;color:#e74c3c}
-.tips{text-align:center;font-size:12px;color:#bbb;margin-top:12px}
-.copy-btn{display:block;width:100%;margin-top:6px;padding:8px;background:#fff;color:#FF6B35;border:1px solid #FF6B35;border-radius:6px;font-size:13px;cursor:pointer}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>美团商家券查询</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; max-width: 600px; margin: 40px auto; padding: 0 20px; color: #333; }
+    .header { background: #ff7800; color: #fff; text-align: center; padding: 30px 15px; border-radius: 12px 12px 0 0; margin: -40px -20px 30px; }
+    h1 { font-size: 26px; margin-bottom: 8px; }
+    .sub-title { opacity: 0.9; font-size: 14px; }
+    textarea { width: 100%; height: 130px; padding: 14px; border: 1px solid #eee; border-radius: 10px; font-size: 16px; resize: none; margin-bottom: 18px; }
+    button { width: 100%; padding: 16px; background: #ff7800; color: #fff; border: none; border-radius: 10px; font-size: 17px; font-weight: 500; }
+    button:active { opacity: 0.88; }
+    .result-box { margin-top: 24px; padding: 18px; border-radius: 10px; background: #f5f5f5; line-height: 2; }
+    .success { color: #009440; font-weight: 500; }
+    .error { color: #d62828; font-weight: 500; }
+    a { color: #0066cc; word-break: break-all; text-decoration: none; }
+    .tip { margin-top: 20px; font-size: 13px; color: #888; text-align: center; }
+  </style>
 </head>
 <body>
-<div class="header">
-<div class="logo">🎫 美团商家券查询</div>
-<div class="slogan">粘贴店铺链接，自动查隐藏券</div>
-</div>
-<div class="main">
-<div class="card">
-<div class="card-title">📎 粘贴链接</div>
-<textarea id="input" placeholder="粘贴带店铺链接的分享文案即可"></textarea>
-<button class="btn" onclick="search()">🔍 立即查询</button>
-</div>
-<div id="result" class="result"></div>
-<div class="tips">两个领券入口任选，每日合计可领5张商家券</div>
-</div>
-<script>
-var API='https://1446882229-dbqcldfaez.ap-guangzhou.tencentscf.com';
+  <div class="header">
+    <h1>美团商家券查询</h1>
+    <div class="sub-title">粘贴店铺链接，自动查隐藏券</div>
+  </div>
+  <textarea id="inputText" placeholder="粘贴整段美团外卖分享文案（文字+短链接）"></textarea>
+  <button onclick="runParse()">立即查询</button>
+  <div id="resultBox" class="result-box"></div>
+  <p class="tip">纯本地前端解析，无服务器风控拦截</p>
 
-// 检测微信内置浏览器
-function isWechat(){
-  return /micromessenger/i.test(navigator.userAgent.toLowerCase());
-}
+  <script>
+    const V8_BASE = "https://offsiteact.meituan.com/web/hoae/collection_waimai_v8/index.html?recallBizId=cpsH5Coupon&bizId=dd7f2bd8f54b472ab349af75a9f62e63&mediumSrc1=dd7f2bd8f54b472ab349af75a9f62e63&scene=CPS_SELF_SRC&pageSrc1=CPS_SELF_OUT_SRC_H5_LINK&pageSrc2=dd7f2bd8f54b472ab349af75a9f62e63&pageSrc3=2ab9837e9eda46d19583c906662cc9ae&activityId=6&mediaPvId=dafkdsajffjafdfs&mediaUserId=10086&outActivityId=6&hoaePageV=8&p=83e980d845644a279e2ff4aefe3bf5e8&poi_id_str=";
+    const V6_BASE = "https://offsiteact.meituan.com/web/hoae/collection_waimai_v6/index.html?recallBizId=cpsH5Coupon&bizId=dd7f2bd8f54b472ab349af75a9f62e63&mediumSrc1=dd7f2bd8f54b472ab349af75a9f62e63&scene=CPS_SELF_SRC&pageSrc1=CPS_SELF_OUT_SRC_H5_LINK&pageSrc2=dd7f2bd8f54b472ab349af75a9f62e63&pageSrc3=2ab9837e9eda46d19583c906662cc9ae&activityId=6&mediaPvId=dafkdsajffjafdfs&mediaUserId=10086&outActivityId=6&hoaePageV=8&p=83e980d845644a279e2ff4aefe3bf5e8&poi_id_str=";
+    const resultBox = document.getElementById("resultBox");
 
-function copyLink(url){
-  navigator.clipboard.writeText(url).then(function(){
-    alert('链接已复制到剪贴板');
-  }).catch(function(){
-    alert('复制失败，请长按链接手动复制');
-  });
-}
-
-function search(){
-  var raw = document.getElementById('input').value.trim();
-  var r = document.getElementById('result');
-  r.innerHTML = '';
-  if(!raw){ r.style.display='block'; r.className='result error'; r.innerHTML='请粘贴内容'; return; }
-  
-  r.style.display='block'; r.className='result'; r.innerHTML='<p style="color:#666">⏳ 正在查询，请稍候...</p>';
-  
-  var cb = 'jsonp_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
-  var timer = setTimeout(function(){
-    delete window[cb];
-    r.className='result error';
-    r.innerHTML='查询超时，请重试';
-  }, 15000);
-  
-  window[cb] = function(data){
-    clearTimeout(timer);
-    delete window[cb];
-    if(data.error){
-      r.className='result error';
-      let errorText = data.error;
-      // 仅解析失败 + 微信环境，才追加浏览器引导
-      if(isWechat()){
-        errorText += '<br><br>由于微信限制，请点击右上角「…」选择在浏览器中尝试';
+    // 提取文本内链接
+    function getUrl(text) {
+      const match = text.match(/https?:\/\/\S+/);
+      return match ? match[0].replace(/[。，、！？；：,.;:!?]+$/, "") : "";
+    }
+    // 提取「」包裹店名
+    function getName(text) {
+      let m = text.match(/「([^」]+)」/);
+      if(!m) m = text.match(/【([^】]+)】/);
+      if(!m) return "";
+      return m[1].trim().replace(/^[.·]+/, "");
+    }
+    // 从页面文本提取POI ID
+    function matchPoi(text) {
+      const rules = [/poi_id_str=(\d+)/, /\/shop\/(\d+)/, /poiId["':\s]+(\d+)/, /poi_id["':\s]+(\d+)/];
+      for(let r of rules) {
+        const res = text.match(r);
+        if(res && res[1]) return res[1];
       }
-      r.innerHTML = errorText;
-    } else {
-      // 解析成功：完全无引导提示，原样展示两个领券入口
-      r.className='result';
-      r.innerHTML = '<p style="font-weight:bold;color:#333;margin-bottom:8px">🎫 商家券已找到！</p>' +
-        '<a href="'+data.v8+'" target="_blank">👉 领取通道1（v8版）</a>' +
-        '<button class="copy-btn" onclick="copyLink(\''+data.v8+'\')">📋 复制链接</button>' +
-        '<a href="'+data.v6+'" target="_blank" style="margin-top:10px">👉 领取通道2（v6备用）</a>' +
-        '<button class="copy-btn" onclick="copyLink(\''+data.v6+'\')">📋 复制链接</button>';
+      return "";
     }
-  };
-  
-  var s = document.createElement('script');
-  // 传完整粘贴内容，后端自动提取链接+店名兜底
-  s.src = API+'?url='+encodeURIComponent(raw)+'&callback='+cb;
-  s.onerror = function(){
-    clearTimeout(timer);
-    delete window[cb];
-    r.className='result error';
-    let errMsg = '请求失败，请重试';
-    if(isWechat()){
-      errMsg += '<br><br>由于微信限制，请点击右上角「…」选择在浏览器中尝试';
+    // 发起跨域代理请求（前端绕过跨域）
+    async function fetchData(url) {
+      const proxy = "https://api.allorigins.win/get?url=" + encodeURIComponent(url);
+      const res = await fetch(proxy);
+      return await res.json();
     }
-    r.innerHTML = errMsg;
-  };
-  document.body.appendChild(s);
-}
-</script>
+    // 按店名搜索门店ID
+    async function searchByName(name) {
+      const keyword = encodeURIComponent(name);
+      const api = `https://apimobile.meituan.com/waimai/search/v2/search?keyword=${keyword}&limit=1`;
+      try {
+        const json = await fetchData(api);
+        const data = JSON.parse(json.contents);
+        if(data?.data?.poiList?.length) return String(data.data.poiList[0].poiId);
+      } catch(e) {}
+      // 降级网页搜索
+      try {
+        const page = await fetchData(`https://waimai.meituan.com/s/${keyword}`);
+        return matchPoi(page.contents);
+      } catch(e) { return ""; }
+    }
+
+    async function runParse() {
+      const text = document.getElementById("inputText").value.trim();
+      resultBox.innerHTML = "⏳ 解析中，请稍候...";
+      if(!text) {
+        resultBox.innerHTML = `<p class="error">❌ 请粘贴完整分享文案</p>`;
+        return;
+      }
+      const shareUrl = getUrl(text);
+      const shopName = getName(text);
+      let poiId = "", way = "";
+      // 1. 短链直接解析
+      if(shareUrl) {
+        try {
+          const res = await fetchData(shareUrl);
+          poiId = matchPoi(res.contents);
+          if(poiId) way = "短链直接提取";
+        } catch(e) {}
+      }
+      // 2. 店名兜底搜索
+      if(!poiId && shopName) {
+        poiId = await searchByName(shopName);
+        if(poiId) way = "店名API兜底匹配";
+        else {
+          const shortName = shopName.split("(")[0].split("（")[0];
+          poiId = await searchByName(shortName);
+          if(poiId) way = "精简店名兜底匹配";
+        }
+      }
+      // 输出结果
+      if(poiId) {
+        resultBox.innerHTML = `
+          <p class="success">✅ 解析成功（${way}）</p>
+          <p>店铺名称：${shopName}</p>
+          <p>领券入口V8：<a target="_blank" href="${V8_BASE + poiId}">${V8_BASE + poiId}</a></p>
+          <p>领券入口V6：<a target="_blank" href="${V6_BASE + poiId}">${V6_BASE + poiId}</a></p>
+        `;
+      } else {
+        resultBox.innerHTML = `
+          <p class="error">❌ 未识别到店铺ID，请确认文案包含完整店铺名</p>
+          <p>提取店名：${shopName}</p>
+          <p>提示：微信内置浏览器跨域限制，建议用手机系统浏览器打开</p>
+        `;
+      }
+    }
+  </script>
 </body>
 </html>
