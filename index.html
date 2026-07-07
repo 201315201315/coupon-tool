@@ -1,235 +1,213 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>美团商家券查询</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f5f5f5;min-height:100vh}
-
-/* 微信环境顶部提示条 */
-.wechat-tip{
-  display:none;
-  background:#e74c3c;
-  color:#fff;
-  padding:10px 15px;
-  font-size:13px;
-  line-height:1.5;
-  text-align:center;
-}
-.wechat-tip strong{color:#ffe082}
-
-.header{background:linear-gradient(135deg,#FF6B35,#FF8C42);padding:20px;text-align:center;color:#fff}
-.logo{font-size:28px;font-weight:bold;margin-bottom:4px}
-.slogan{font-size:13px;opacity:0.9}
-.main{padding:15px}
-.card{background:#fff;border-radius:12px;padding:20px;margin-bottom:15px;box-shadow:0 2px 12px rgba(0,0,0,0.06)}
-.card-title{font-size:16px;font-weight:bold;color:#333;margin-bottom:12px}
-textarea{width:100%;height:100px;border:1px solid #e8e8e8;border-radius:8px;padding:12px;font-size:14px;resize:vertical;outline:none;background:#fafafa}
-textarea:focus{border-color:#FF6B35}
-.btn{width:100%;height:48px;background:linear-gradient(135deg,#FF6B35,#FF8C42);color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:bold;cursor:pointer;margin-top:12px}
-.btn:active{opacity:0.85}
-.result{margin-top:15px;padding:16px;background:#f9f9f9;border-radius:8px;border-left:4px solid #FF6B35;display:none}
-.result a{color:#FF6B35;text-decoration:none;font-weight:bold;display:block;padding:10px 0;border-bottom:1px dashed #eee;font-size:15px}
-.result a:last-child{border-bottom:none}
-.result.error{background:#fff0f0;border-left-color:#e74c3c;color:#e74c3c}
-.tips{text-align:center;font-size:12px;color:#bbb;margin-top:12px}
-
-/* 特殊短链专属入口 */
-.special-entry{
-  border:2px solid #FF6B35;
-  border-radius:12px;
-  padding:16px;
-  background:#fff7f3;
-  margin-bottom:15px;
-}
-.special-title{
-  font-size:16px;
-  font-weight:bold;
-  color:#FF6B35;
-  margin-bottom:10px;
-  display:flex;
-  align-items:center;
-  gap:6px;
-}
-.special-input{
-  width:100%;
-  padding:10px;
-  border:1px solid #ffd1bf;
-  border-radius:8px;
-  margin-bottom:10px;
-  font-size:14px;
-  background:#fff;
-}
-.special-btn{
-  width:100%;
-  height:42px;
-  background:#FF6B35;
-  color:#fff;
-  border:none;
-  border-radius:8px;
-  font-size:15px;
-  font-weight:bold;
-  cursor:pointer;
-}
-.special-desc{
-  font-size:12px;
-  color:#999;
-  margin-top:8px;
-  line-height:1.4;
-}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>美团商家券查询</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; max-width: 700px; margin: 0 auto; background:#fff; }
+    .header-bar { background:#ff7821; padding:30px 20px; text-align:center; color:#fff; }
+    .header-bar h1 { font-size:28px; margin-bottom:8px; }
+    .header-bar p { opacity:0.9; font-size:15px; }
+    .special-box { margin:20px 15px; border:2px solid #ff8a29; border-radius:12px; padding:18px; background:#fff8f0; }
+    .special-box .title { display:flex; align-items:center; gap:6px; font-size:17px; font-weight:bold; margin-bottom:12px; }
+    .red-dot { width:12px; height:12px; background:#f53f3f; border-radius:50%; }
+    textarea { width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; font-size:14px; min-height:90px; outline:none; }
+    .btn-orange { width:100%; padding:14px; margin-top:14px; border:none; border-radius:8px; background:#ff7821; color:#fff; font-size:17px; font-weight:500; }
+    .desc-tip { font-size:13px; color:#888; margin-top:8px; line-height:1.5; }
+    .normal-box { margin:20px 15px; border:1px solid #eee; border-radius:12px; padding:18px; }
+    .normal-box .title { display:flex; align-items:center; gap:6px; font-size:17px; font-weight:bold; margin-bottom:12px; }
+    .gray-icon { color:#999; }
+    .result-area { margin:0 15px 30px; padding:15px; border-radius:10px; background:#f7f8fa; min-height:70px; }
+    .error-tip { background:#fff2f2; border-left:4px solid #f53f3f; padding:12px; margin:10px 15px; color:#d63031; }
+    .coupon-card { margin-top:12px; padding:12px; background:#fff; border-radius:8px; border:1px solid #eee; }
+    .coupon-card .sub-title { font-size:14px; font-weight:500; margin-bottom:6px; }
+    .coupon-btn { display:block; width:100%; padding:10px; background:#ff7821; color:#fff; text-align:center; text-decoration:none; border-radius:6px; margin:6px 0; font-size:14px; }
+    .copy-btn { width:100%; padding:8px; border:1px solid #ff7821; background:#fff; color:#ff7821; border-radius:6px; font-size:13px; }
+    .bottom-note { text-align:center; font-size:13px; color:#aaa; margin:30px 0; }
+  </style>
 </head>
 <body>
-
-<!-- 微信环境专属提示条，微信打开自动显示 -->
-<div class="wechat-tip" id="wechatTip">
-  <strong>微信内提示：</strong>小众短链无法自动展开，请点击右上角「...」选择「在浏览器打开」后使用短链功能；原生美团链接可直接查询
+<div class="header-bar">
+  <h1>美团商家券查询</h1>
+  <p>粘贴店铺链接，自动查隐藏券</p>
 </div>
 
-<div class="header">
-<div class="logo">🎫 美团商家券查询</div>
-<div class="slogan">粘贴店铺链接，自动查隐藏券</div>
-</div>
-<div class="main">
-
-<!-- 特殊短链专属解析入口：支持整段文案自动识别短链 -->
-<div class="special-entry">
-  <div class="special-title">🔴 特殊短链专属解析入口</div>
-  <input class="special-input" id="shortInput" placeholder="粘贴整段分享文案或纯短链均可，支持肯德基/瑞幸等所有店铺">
-  <button class="special-btn" onclick="localExpandShort()">一键展开并填入查询</button>
-  <p class="special-desc">自动从文案中提取短链，本地解析绕过云函数拦截，兼容所有小众短链域名</p>
+<!-- 顶部特殊短链专属入口：前端本地解析dpurl，不走云函数 -->
+<div class="special-box">
+  <div class="title">
+    <span class="red-dot"></span>特殊短链专属解析入口
+  </div>
+  <textarea id="specialInput" placeholder="粘贴整段分享文案或纯短链均可，支持肯德基/瑞幸等所有dpurl短链"></textarea>
+  <button class="btn-orange" onclick="localParseDpurl()">一键展开并填入查询</button>
+  <p class="desc-tip">自动从文案中提取短链，本地解析绕过云函数拦截，兼容所有小众短链域名</p>
 </div>
 
-<div class="card">
-<div class="card-title">📎 普通链接查询</div>
-<textarea id="contentInput" placeholder="粘贴带店铺链接的文字即可，支持美团原生链接"></textarea>
-<button class="btn" onclick="startSearch()">🔍 立即查询</button>
+<!-- 普通链接查询：提交给后端云函数解析 -->
+<div class="normal-box">
+  <div class="title">
+    <span class="gray-icon">📎</span>普通链接查询
+  </div>
+  <textarea id="normalInput" placeholder="粘贴带店铺链接的文字即可，支持美团原生长链接"></textarea>
+  <button class="btn-orange" onclick="callCloudFunc()">🔍 立即查询</button>
 </div>
-<div id="resultBox" class="result"></div>
-<div class="tips">两个领券入口任选，每日合计可领5张商家券</div>
-</div>
+
+<div id="errorBox" class="error-tip" style="display:none;"></div>
+<div id="resultBox" class="result-area"></div>
+<p class="bottom-note">两个领券入口任选，每日合计可领5张商家券</p>
 
 <script>
-const API_URL = 'https://1446882229-dbqcldfaez.ap-guangzhou.tencentscf.com';
-const REQUEST_TIMEOUT = 10000;
+const COUPON_V6 = 'https://market.waimai.meituan.com/gd/single.html?shop_id=';
+const COUPON_V8 = 'https://market.waimai.meituan.com/g2/single.html?shop_id=';
+const CLOUD_URL = 'https://1446882229-dbqcldfaez.ap-guangzhou.tencentscf.com';
+let timeoutTimer = null;
+let isTimeout = false;
 
-// 检测是否为微信内置浏览器
-function isWeChatBrowser() {
-  const ua = navigator.userAgent.toLowerCase();
-  return /micromessenger/i.test(ua);
-}
-
-// 页面加载完成后，微信环境自动显示顶部提示
-window.onload = function() {
-  if (isWeChatBrowser()) {
-    document.getElementById('wechatTip').style.display = 'block';
+// 微信环境检测
+(function checkWechat(){
+  if(/MicroMessenger/i.test(navigator.userAgent)){
+    alert('微信内置浏览器限制跨域，请点击右上角，选择在系统浏览器打开使用');
   }
-};
+})();
 
-// 统一链接提取函数：自动从任意文本中提取链接，过滤末尾标点
-function extractPureLink(text) {
-  const matchResult = text.match(/https?:\/\/\S+/);
-  if (!matchResult) return null;
-  return matchResult[0].replace(/[。，！？；：,.;:!?]+$/, '');
+// 复制链接通用函数
+function copyText(text){
+  navigator.clipboard.writeText(text).then(()=>alert('链接复制成功')).catch(()=>alert('复制失败，请手动长按复制'));
 }
 
-// 短链本地展开
-async function localExpandShort() {
-  const inputVal = document.getElementById('shortInput').value.trim();
-  if (!inputVal) return alert('请粘贴分享文案或短链');
-  
-  let shortUrl = extractPureLink(inputVal);
-  if (!shortUrl) return alert('未识别到有效链接，请检查输入内容');
+// 提取文本里所有http链接
+function extractAllUrl(text){
+  return text.match(/https?:\/\/[^\s\u4e00-\u9fa5，。、；：！？（）]+/g) || [];
+}
 
-  // 微信环境弹出指定提示
-  if (isWeChatBrowser()) {
-    alert('由于微信协议限制，请你点击右上角三个点到浏览器尝试');
+// ----------------------核心：前端本地解析dpurl短链（绕过云服务器拦截）----------------------
+async function localParseDpurl(){
+  const inputVal = document.getElementById('specialInput').value.trim();
+  const errBox = document.getElementById('errorBox');
+  const resBox = document.getElementById('resultBox');
+  errBox.style.display = 'none';
+  resBox.innerHTML = '<p style="color:#666">本地正在解析短链，预计2-4秒...</p>';
+  const urlList = extractAllUrl(inputVal);
+  if(urlList.length === 0){
+    errBox.innerText = '未识别到有效短链，请重新粘贴';
+    errBox.style.display = 'block';
+    resBox.innerHTML = '';
     return;
   }
-
-  // 自动转HTTPS，绕过浏览器混合内容拦截
-  shortUrl = shortUrl.replace(/^http:\/\//i, 'https://');
-  
-  try {
-    const resp = await fetch(shortUrl, { redirect: 'follow' });
-    const realUrl = resp.url;
-    document.getElementById('contentInput').value = realUrl;
-    alert('展开成功！真实店铺链接已自动填入下方查询框，点击立即查询即可');
-  } catch (err) {
-    const isConfirm = window.confirm('自动展开失败，是否复制短链并在新窗口打开？\n打开后复制页面地址，粘贴回下方查询框即可使用');
-    if (isConfirm) {
-      navigator.clipboard.writeText(shortUrl).then(() => {
-        window.open(shortUrl, '_blank');
-      });
+  // 只取第一条短链
+  const targetShortUrl = urlList[0];
+  // 判断是否是dpurl短链
+  if(!targetShortUrl.includes('dpurl.cn')){
+    errBox.innerText = '当前不是dpurl分享短链，请使用下方普通链接入口';
+    errBox.style.display = 'block';
+    resBox.innerHTML = '';
+    return;
+  }
+  try{
+    // 前端浏览器本地发起请求，跟随302重定向，手机个人IP无风控拦截
+    const fetchRes = await fetch(targetShortUrl,{
+      redirect:'follow',
+      headers:{
+        'User-Agent':'Mozilla/5.0 (iPhone; CPU iPhone OS 17 Mobile Safari'
+      }
+    });
+    const finalUrl = fetchRes.url;
+    // 从最终链接提取shopId
+    let shopId = null;
+    const pathMatch = finalUrl.match(/\/shop\/(\d+)/i);
+    const paramMatch = finalUrl.match(/[?&]shop_id=(\d+)/i);
+    if(pathMatch) shopId = pathMatch[1];
+    if(paramMatch) shopId = paramMatch[1];
+    if(!shopId){
+      errBox.innerText = '解析成功跳转，但未读取到店铺ID，可复制链接手动打开：'+finalUrl;
+      errBox.style.display = 'block';
+      resBox.innerHTML = '';
+      return;
     }
+    // 解析成功，生成双版本领券链接
+    const v6Link = COUPON_V6 + shopId;
+    const v8Link = COUPON_V8 + shopId;
+    resBox.innerHTML = `
+      <h3>本地解析成功（特殊短链）</h3>
+      <p>店铺ID：<strong style="color:#ff7821; font-size:20px">${shopId}</strong></p>
+      <div class="coupon-card">
+        <div class="sub-title">V6旧版券池（独立5张券）</div>
+        <a href="${v6Link}" target="_blank" class="coupon-btn">一键领取V6隐藏券</a>
+        <button class="copy-btn" onclick="copyText('${v6Link}')">复制V6领券链接</button>
+      </div>
+      <div class="coupon-card">
+        <div class="sub-title">V8新版券池（独立5张券，与V6不冲突）</div>
+        <a href="${v8Link}" target="_blank" class="coupon-btn">一键领取V8隐藏券</a>
+        <button class="copy-btn" onclick="copyText('${v8Link}')">复制V8领券链接</button>
+      </div>
+      <p style="font-size:12px; color:#999; margin-top:10px;">解析方式：前端本地浏览器解析，无服务器拦截</p>
+    `;
+  }catch(err){
+    errBox.innerText = '本地解析失败：'+err.message+'，可复制短链粘贴到普通入口重试';
+    errBox.style.display = 'block';
+    resBox.innerHTML = '';
   }
 }
 
-// 主查询逻辑
-function startSearch() {
-  const inputText = document.getElementById('contentInput').value.trim();
-  const resultDom = document.getElementById('resultBox');
-  let timerId = null;
-  resultDom.innerHTML = '';
-
-  if (!inputText) {
-    resultDom.style.display = 'block';
-    resultDom.className = 'result error';
-    resultDom.innerHTML = '请粘贴包含店铺链接的内容';
+// ----------------------原有逻辑：普通链接调用云函数解析----------------------
+function callCloudFunc(){
+  const inputVal = document.getElementById('normalInput').value.trim();
+  const errBox = document.getElementById('errorBox');
+  const resBox = document.getElementById('resultBox');
+  errBox.style.display = 'none';
+  resBox.innerHTML = '<p style="color:#666">云函数正在解析，预计3-5秒...</p>';
+  const urlList = extractAllUrl(inputVal);
+  if(urlList.length === 0){
+    errBox.innerText = '未识别到有效链接';
+    errBox.style.display = 'block';
+    resBox.innerHTML = '';
     return;
   }
-  const targetUrl = extractPureLink(inputText);
-  if (!targetUrl) {
-    resultDom.style.display = 'block';
-    resultDom.className = 'result error';
-    resultDom.innerHTML = '未识别到有效网页链接';
-    return;
-  }
-  if (targetUrl.length > 2048) {
-    resultDom.style.display = 'block';
-    resultDom.className = 'result error';
-    resultDom.innerHTML = '链接长度超限，请重新复制';
-    return;
-  }
-
-  resultDom.style.display = 'block';
-  resultDom.className = 'result';
-  resultDom.innerHTML = '<p style="color:#666">⏳ 正在解析店铺信息，请稍候...</p>';
-
-  const callbackName = 'jsonp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
-  timerId = setTimeout(() => {
+  const targetUrl = urlList[0];
+  // 超时重置
+  isTimeout = false;
+  clearTimeout(timeoutTimer);
+  const callbackName = 'jsonp_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+  const script = document.createElement('script');
+  // 15秒超时
+  timeoutTimer = setTimeout(()=>{
+    isTimeout = true;
+    document.head.removeChild(script);
     delete window[callbackName];
-    resultDom.className = 'result error';
-    resultDom.innerHTML = '请求超时，特殊短链请使用顶部专属入口解析';
-  }, REQUEST_TIMEOUT);
-
-  window[callbackName] = function (resData) {
-    clearTimeout(timerId);
+    errBox.innerText = '请求超时，请稍后重试';
+    errBox.style.display = 'block';
+    resBox.innerHTML = '';
+  },15000);
+  window[callbackName] = function(res){
+    if(isTimeout) return;
+    clearTimeout(timeoutTimer);
+    document.head.removeChild(script);
     delete window[callbackName];
-    if (resData.error) {
-      resultDom.className = 'result error';
-      resultDom.innerHTML = resData.error + '<br><small>提示：小众短链请使用顶部专属入口</small>';
-    } else {
-      resultDom.className = 'result';
-      resultDom.innerHTML = `
-        <p style="font-weight:bold;color:#333;margin-bottom:8px">🎫 商家券已找到！</p>
-        <a href="${resData.v8}" target="_blank">👉 领取通道1（v8标准版）</a>
-        <a href="${resData.v6}" target="_blank">👉 领取通道2（v6备用版）</a>
+    if(res.shopId && res.couponUrlV6 && res.couponUrlV8){
+      resBox.innerHTML = `
+        <h3>云函数解析成功（普通链接）</h3>
+        <p>店铺ID：<strong style="color:#ff7821; font-size:20px">${res.shopId}</strong></p>
+        <p style="font-size:12px;color:#999">解析渠道：${res.from}</p>
+        <div class="coupon-card">
+          <div class="sub-title">V6旧版券池（独立5张券）</div>
+          <a href="${res.couponUrlV6}" target="_blank" class="coupon-btn">一键领取V6隐藏券</a>
+          <button class="copy-btn" onclick="copyText('${res.couponUrlV6}')">复制V6领券链接</button>
+        </div>
+        <div class="coupon-card">
+          <div class="sub-title">V8新版券池（独立5张券）</div>
+          <a href="${res.couponUrlV8}" target="_blank" class="coupon-btn">一键领取V8隐藏券</a>
+          <button class="copy-btn" onclick="copyText('${res.couponUrlV8}')">复制V8领券链接</button>
+        </div>
       `;
+    }else{
+      errBox.innerText = res.tip || '未识别到店铺ID，小众短链请使用顶部专属入口';
+      errBox.style.display = 'block';
+      resBox.innerHTML = '';
     }
   };
-
-  const scriptTag = document.createElement('script');
-  scriptTag.src = `${API_URL}?url=${encodeURIComponent(targetUrl)}&callback=${callbackName}`;
-  scriptTag.onerror = function () {
-    clearTimeout(timerId);
-    delete window[callbackName];
-    resultDom.className = 'result error';
-    resultDom.innerHTML = '接口请求失败，请使用顶部短链专属入口';
-  };
-  document.body.appendChild(scriptTag);
+  script.src = `${CLOUD_URL}?callback=${callbackName}&url=${encodeURIComponent(targetUrl)}`;
+  document.head.appendChild(script);
 }
 </script>
 </body>
