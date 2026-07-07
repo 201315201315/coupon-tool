@@ -1,178 +1,111 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>美团商家券查询</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: system-ui, sans-serif; max-width: 700px; margin: 0 auto; background:#fff; }
-    .header-bar { background:#ff7821; padding:30px 20px; text-align:center; color:#fff; }
-    .header-bar h1 { font-size:28px; margin-bottom:8px; }
-    .header-bar p { opacity:0.9; font-size:15px; }
-    .special-box { margin:20px 15px; border:2px solid #ff8a29; border-radius:12px; padding:18px; background:#fff8f0; }
-    .special-box .title { display:flex; align-items:center; gap:6px; font-size:17px; font-weight:bold; margin-bottom:12px; }
-    .red-dot { width:12px; height:12px; background:#f53f3f; border-radius:50%; }
-    textarea { width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; font-size:14px; min-height:90px; outline:none; }
-    .btn-orange { width:100%; padding:14px; margin-top:14px; border:none; border-radius:8px; background:#ff7821; color:#fff; font-size:17px; font-weight:500; transition:0.2s; }
-    .btn-orange:disabled { background:#ffb37c; pointer-events:none; opacity:0.7; }
-    .desc-tip { font-size:13px; color:#888; margin-top:8px; line-height:1.5; }
-    .normal-box { margin:20px 15px; border:1px solid #eee; border-radius:12px; padding:18px; }
-    .normal-box .title { display:flex; align-items:center; gap:6px; font-size:17px; font-weight:bold; margin-bottom:12px; }
-    .gray-icon { color:#999; }
-    .result-area { margin:0 15px 30px; padding:15px; border-radius:10px; background:#f7f8fa; min-height:70px; }
-    .error-tip { background:#fff2f2; border-left:4px solid #f53f3f; padding:12px; margin:10px 15px; color:#d63031; display:none; }
-    .coupon-card { margin-top:12px; padding:12px; background:#fff; border-radius:8px; border:1px solid #eee; }
-    .coupon-card .sub-title { font-size:14px; font-weight:500; margin-bottom:6px; }
-    .coupon-btn { display:block; width:100%; padding:10px; background:#ff7821; color:#fff; text-align:center; text-decoration:none; border-radius:6px; margin:6px 0; font-size:14px; }
-    .copy-btn { width:100%; padding:8px; border:1px solid #ff7821; background:#fff; color:#ff7821; border-radius:6px; font-size:13px; }
-    .bottom-note { text-align:center; font-size:13px; color:#aaa; margin:30px 0; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>美团商家券查询</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f5f5f5;min-height:100vh}
+.header{background:linear-gradient(135deg,#FF6B35,#FF8C42);padding:20px;text-align:center;color:#fff}
+.logo{font-size:28px;font-weight:bold;margin-bottom:4px}
+.slogan{font-size:13px;opacity:0.9}
+.main{padding:15px}
+.card{background:#fff;border-radius:12px;padding:20px;margin-bottom:15px;box-shadow:0 2px 12px rgba(0,0,0,0.06)}
+.card-title{font-size:16px;font-weight:bold;color:#333;margin-bottom:12px}
+textarea{width:100%;height:100px;border:1px solid #e8e8e8;border-radius:8px;padding:12px;font-size:14px;resize:vertical;outline:none;background:#fafafa}
+textarea:focus{border-color:#FF6B35}
+.btn{width:100%;height:48px;background:linear-gradient(135deg,#FF6B35,#FF8C42);color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:bold;cursor:pointer;margin-top:12px}
+.btn:active{opacity:0.85}
+.result{margin-top:15px;padding:16px;background:#f9f9f9;border-radius:8px;border-left:4px solid #FF6B35;display:none}
+.result a{color:#FF6B35;text-decoration:none;font-weight:bold;display:block;padding:10px 0;border-bottom:1px dashed #eee;font-size:15px}
+.result a:last-of-type{border-bottom:none}
+.result.error{background:#fff0f0;border-left-color:#e74c3c;color:#e74c3c}
+.tips{text-align:center;font-size:12px;color:#bbb;margin-top:12px}
+.copy-btn{display:block;width:100%;margin-top:6px;padding:8px;background:#fff;color:#FF6B35;border:1px solid #FF6B35;border-radius:6px;font-size:13px;cursor:pointer}
+</style>
 </head>
 <body>
-<div class="header-bar">
-  <h1>美团商家券查询</h1>
-  <p>粘贴店铺链接，自动查隐藏券</p>
+<div class="header">
+<div class="logo">🎫 美团商家券查询</div>
+<div class="slogan">粘贴店铺链接，自动查隐藏券</div>
 </div>
-
-<div class="special-box">
-  <div class="title">
-    <span class="red-dot"></span>特殊短链专属解析入口
-  </div>
-  <textarea id="specialInput" placeholder="粘贴整段分享文案或纯短链均可，支持肯德基/瑞幸等所有dpurl短链"></textarea>
-  <button class="btn-orange" id="specialBtn" onclick="specialParse()">一键展开并填入查询</button>
-  <p class="desc-tip">自动从文案中提取短链，后台多UA重试解析，兼容所有小众短链域名</p>
+<div class="main">
+<div class="card">
+<div class="card-title">📎 粘贴链接</div>
+<textarea id="input" placeholder="粘贴带店铺链接的分享文案即可"></textarea>
+<button class="btn" onclick="search()">🔍 立即查询</button>
 </div>
-
-<div class="normal-box">
-  <div class="title">
-    <span class="gray-icon">📎</span>普通链接查询
-  </div>
-  <textarea id="normalInput" placeholder="粘贴带店铺链接的文字即可，支持美团原生长链接"></textarea>
-  <button class="btn-orange" id="normalBtn" onclick="normalParse()">🔍 立即查询</button>
+<div id="result" class="result"></div>
+<div class="tips">两个领券入口任选，每日合计可领5张商家券</div>
 </div>
-
-<div id="errorBox" class="error-tip"></div>
-<div id="resultBox" class="result-area"></div>
-<p class="bottom-note">两个领券入口任选，每日合计可领5张商家券</p>
-
 <script>
-const COUPON_V6 = 'https://market.waimai.meituan.com/gd/single.html?shop_id=';
-const COUPON_V8 = 'https://market.waimai.meituan.com/g2/single.html?shop_id=';
-// 固定你的云函数地址，无需修改
-const CLOUD_URL = 'https://1446882229-dbqcldfaez.ap-guangzhou.tencentscf.com';
-let timeoutTimer = null;
-let isTimeout = false;
-let isRequestLock = false;
+var API='https://1446882229-dbqcldfaez.ap-guangzhou.tencentscf.com';
 
-// 判断微信环境
+// 检测微信内置浏览器
 function isWechat(){
-  return /MicroMessenger/i.test(navigator.userAgent);
+  return /micromessenger/i.test(navigator.userAgent.toLowerCase());
 }
 
-// 复制文本
-function copyText(text){
-  navigator.clipboard.writeText(text).then(()=>alert('链接复制成功')).catch(()=>alert('复制失败，请手动长按复制'));
+function copyLink(url){
+  navigator.clipboard.writeText(url).then(function(){
+    alert('链接已复制到剪贴板');
+  }).catch(function(){
+    alert('复制失败，请长按链接手动复制');
+  });
 }
 
-// 提取所有http链接
-function extractAllUrl(text){
-  return text.match(/https?:\/\/[^\s\u4e00-\u9fa5，。、；：！？（）]+/g) || [];
-}
-
-// 统一云函数请求封装（全局锁防止按钮卡死）
-function requestCloud(rawText){
-  const errBox = document.getElementById('errorBox');
-  const resBox = document.getElementById('resultBox');
-  const specialBtn = document.getElementById('specialBtn');
-  const normalBtn = document.getElementById('normalBtn');
-
-  // 重复点击直接拦截
-  if(isRequestLock) return;
-  const urlList = extractAllUrl(rawText);
-  if(urlList.length === 0){
-    errBox.innerText = '未识别到有效链接，请重新粘贴文案';
-    errBox.style.display = 'block';
-    resBox.innerHTML = '';
-    return;
-  }
-  const targetUrl = urlList[0];
-  errBox.style.display = 'none';
-  resBox.innerHTML = '<p style="color:#666">云函数多UA重试解析，预计3-6秒...</p>';
-  isTimeout = false;
-  isRequestLock = true;
-  specialBtn.disabled = true;
-  normalBtn.disabled = true;
-  clearTimeout(timeoutTimer);
-
-  const callbackName = 'jsonp_' + Date.now() + '_' + Math.random().toString(36).slice(2);
-  const script = document.createElement('script');
-
-  // 18秒超时兜底，强制解锁按钮
-  timeoutTimer = setTimeout(()=>{
-    isTimeout = true;
-    isRequestLock = false;
-    specialBtn.disabled = false;
-    normalBtn.disabled = false;
-    if(document.head.contains(script)) document.head.removeChild(script);
-    delete window[callbackName];
-    errBox.innerText = '解析超时，请稍后重试';
-    errBox.style.display = 'block';
-    resBox.innerHTML = '';
-  },18000);
-
-  // 云函数回调接收结果
-  window[callbackName] = function(res){
-    if(isTimeout) return;
-    clearTimeout(timeoutTimer);
-    // 无论成功失败，强制解锁双按钮
-    isRequestLock = false;
-    specialBtn.disabled = false;
-    normalBtn.disabled = false;
-    document.head.removeChild(script);
-    delete window[callbackName];
-
-    if(res.shopId && res.couponUrlV6 && res.couponUrlV8){
-      resBox.innerHTML = `
-        <h3>解析成功</h3>
-        <p>店铺ID：<strong style="color:#ff7821; font-size:20px">${res.shopId}</strong></p>
-        <p style="font-size:12px;color:#999">解析渠道：${res.from}</p>
-        <div class="coupon-card">
-          <div class="sub-title">V6旧版券池（独立5张券）</div>
-          <a href="${res.couponUrlV6}" target="_blank" class="coupon-btn">一键领取V6隐藏券</a>
-          <button class="copy-btn" onclick="copyText('${res.couponUrlV6}')">复制V6领券链接</button>
-        </div>
-        <div class="coupon-card">
-          <div class="sub-title">V8新版券池（独立5张券，与V6不冲突）</div>
-          <a href="${res.couponUrlV8}" target="_blank" class="coupon-btn">一键领取V8隐藏券</a>
-          <button class="copy-btn" onclick="copyText('${res.couponUrlV8}')">复制V8领券链接</button>
-        </div>
-      `;
-    }else{
-      errBox.innerText = res.tip || '未识别到店铺ID，小众dpurl短链请使用顶部专属入口';
-      errBox.style.display = 'block';
-      resBox.innerHTML = '';
+function search(){
+  var raw = document.getElementById('input').value.trim();
+  var r = document.getElementById('result');
+  r.innerHTML = '';
+  if(!raw){ r.style.display='block'; r.className='result error'; r.innerHTML='请粘贴内容'; return; }
+  
+  r.style.display='block'; r.className='result'; r.innerHTML='<p style="color:#666">⏳ 正在查询，请稍候...</p>';
+  
+  var cb = 'jsonp_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
+  var timer = setTimeout(function(){
+    delete window[cb];
+    r.className='result error';
+    r.innerHTML='查询超时，请重试';
+  }, 15000);
+  
+  window[cb] = function(data){
+    clearTimeout(timer);
+    delete window[cb];
+    if(data.error){
+      r.className='result error';
+      let errorText = data.error;
+      // 仅解析失败 + 微信环境，才追加浏览器引导
+      if(isWechat()){
+        errorText += '<br><br>由于微信限制，请点击右上角「…」选择在浏览器中尝试';
+      }
+      r.innerHTML = errorText;
+    } else {
+      // 解析成功：完全无引导提示，原样展示两个领券入口
+      r.className='result';
+      r.innerHTML = '<p style="font-weight:bold;color:#333;margin-bottom:8px">🎫 商家券已找到！</p>' +
+        '<a href="'+data.v8+'" target="_blank">👉 领取通道1（v8版）</a>' +
+        '<button class="copy-btn" onclick="copyLink(\''+data.v8+'\')">📋 复制链接</button>' +
+        '<a href="'+data.v6+'" target="_blank" style="margin-top:10px">👉 领取通道2（v6备用）</a>' +
+        '<button class="copy-btn" onclick="copyLink(\''+data.v6+'\')">📋 复制链接</button>';
     }
   };
-
-  script.src = `${CLOUD_URL}?callback=${callbackName}&url=${encodeURIComponent(targetUrl)}`;
-  document.head.appendChild(script);
-}
-
-// 顶部短链按钮：仅此处触发微信切换提示
-function specialParse(){
-  const inputVal = document.getElementById('specialInput').value.trim();
-  if(isWechat()){
-    alert('微信内置浏览器解析短链存在限制，请点击右上角「…」，选择在系统浏览器打开页面后重试');
-    return;
-  }
-  requestCloud(inputVal);
-}
-
-// 下方普通链接按钮：微信无任何弹窗，直接解析
-function normalParse(){
-  const inputVal = document.getElementById('normalInput').value.trim();
-  requestCloud(inputVal);
+  
+  var s = document.createElement('script');
+  // 传完整粘贴内容，后端自动提取链接+店名兜底
+  s.src = API+'?url='+encodeURIComponent(raw)+'&callback='+cb;
+  s.onerror = function(){
+    clearTimeout(timer);
+    delete window[cb];
+    r.className='result error';
+    let errMsg = '请求失败，请重试';
+    if(isWechat()){
+      errMsg += '<br><br>由于微信限制，请点击右上角「…」选择在浏览器中尝试';
+    }
+    r.innerHTML = errMsg;
+  };
+  document.body.appendChild(s);
 }
 </script>
 </body>
