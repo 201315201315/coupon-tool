@@ -34,23 +34,23 @@
   <p>粘贴店铺链接，自动查隐藏券</p>
 </div>
 
-<!-- 顶部特殊短链专属入口：前端本地解析dpurl，不走云函数 -->
+<!-- 顶部特殊短链专属入口：统一调用云函数，点击按钮才检测微信 -->
 <div class="special-box">
   <div class="title">
     <span class="red-dot"></span>特殊短链专属解析入口
   </div>
   <textarea id="specialInput" placeholder="粘贴整段分享文案或纯短链均可，支持肯德基/瑞幸等所有dpurl短链"></textarea>
-  <button class="btn-orange" onclick="localParseDpurl()">一键展开并填入查询</button>
-  <p class="desc-tip">自动从文案中提取短链，本地解析绕过云函数拦截，兼容所有小众短链域名</p>
+  <button class="btn-orange" onclick="specialParse()">一键展开并填入查询</button>
+  <p class="desc-tip">自动从文案中提取短链，后台多UA重试解析，兼容所有小众短链域名</p>
 </div>
 
-<!-- 普通链接查询：提交给后端云函数解析 -->
+<!-- 普通链接查询：云函数JSONP，微信内无弹窗可直接使用 -->
 <div class="normal-box">
   <div class="title">
     <span class="gray-icon">📎</span>普通链接查询
   </div>
   <textarea id="normalInput" placeholder="粘贴带店铺链接的文字即可，支持美团原生长链接"></textarea>
-  <button class="btn-orange" onclick="callCloudFunc()">🔍 立即查询</button>
+  <button class="btn-orange" onclick="normalParse()">🔍 立即查询</button>
 </div>
 
 <div id="errorBox" class="error-tip" style="display:none;"></div>
@@ -63,122 +63,44 @@ const COUPON_V8 = 'https://market.waimai.meituan.com/g2/single.html?shop_id=';
 const CLOUD_URL = 'https://1446882229-dbqcldfaez.ap-guangzhou.tencentscf.com';
 let timeoutTimer = null;
 let isTimeout = false;
-
-// 微信环境检测
-(function checkWechat(){
-  if(/MicroMessenger/i.test(navigator.userAgent)){
-    alert('微信内置浏览器限制跨域，请点击右上角，选择在系统浏览器打开使用');
-  }
-})();
-
+// 判断是否微信环境
+function isWechat(){
+  return /MicroMessenger/i.test(navigator.userAgent);
+}
 // 复制链接通用函数
 function copyText(text){
   navigator.clipboard.writeText(text).then(()=>alert('链接复制成功')).catch(()=>alert('复制失败，请手动长按复制'));
 }
-
 // 提取文本里所有http链接
 function extractAllUrl(text){
   return text.match(/https?:\/\/[^\s\u4e00-\u9fa5，。、；：！？（）]+/g) || [];
 }
-
-// ----------------------核心：前端本地解析dpurl短链（绕过云服务器拦截）----------------------
-async function localParseDpurl(){
-  const inputVal = document.getElementById('specialInput').value.trim();
+// 统一云函数请求封装
+function requestCloud(url){
   const errBox = document.getElementById('errorBox');
   const resBox = document.getElementById('resultBox');
   errBox.style.display = 'none';
-  resBox.innerHTML = '<p style="color:#666">本地正在解析短链，预计2-4秒...</p>';
-  const urlList = extractAllUrl(inputVal);
+  resBox.innerHTML = '<p style="color:#666">云函数多UA重试解析，预计3-6秒...</p>';
+  const urlList = extractAllUrl(url);
   if(urlList.length === 0){
-    errBox.innerText = '未识别到有效短链，请重新粘贴';
-    errBox.style.display = 'block';
-    resBox.innerHTML = '';
-    return;
-  }
-  // 只取第一条短链
-  const targetShortUrl = urlList[0];
-  // 判断是否是dpurl短链
-  if(!targetShortUrl.includes('dpurl.cn')){
-    errBox.innerText = '当前不是dpurl分享短链，请使用下方普通链接入口';
-    errBox.style.display = 'block';
-    resBox.innerHTML = '';
-    return;
-  }
-  try{
-    // 前端浏览器本地发起请求，跟随302重定向，手机个人IP无风控拦截
-    const fetchRes = await fetch(targetShortUrl,{
-      redirect:'follow',
-      headers:{
-        'User-Agent':'Mozilla/5.0 (iPhone; CPU iPhone OS 17 Mobile Safari'
-      }
-    });
-    const finalUrl = fetchRes.url;
-    // 从最终链接提取shopId
-    let shopId = null;
-    const pathMatch = finalUrl.match(/\/shop\/(\d+)/i);
-    const paramMatch = finalUrl.match(/[?&]shop_id=(\d+)/i);
-    if(pathMatch) shopId = pathMatch[1];
-    if(paramMatch) shopId = paramMatch[1];
-    if(!shopId){
-      errBox.innerText = '解析成功跳转，但未读取到店铺ID，可复制链接手动打开：'+finalUrl;
-      errBox.style.display = 'block';
-      resBox.innerHTML = '';
-      return;
-    }
-    // 解析成功，生成双版本领券链接
-    const v6Link = COUPON_V6 + shopId;
-    const v8Link = COUPON_V8 + shopId;
-    resBox.innerHTML = `
-      <h3>本地解析成功（特殊短链）</h3>
-      <p>店铺ID：<strong style="color:#ff7821; font-size:20px">${shopId}</strong></p>
-      <div class="coupon-card">
-        <div class="sub-title">V6旧版券池（独立5张券）</div>
-        <a href="${v6Link}" target="_blank" class="coupon-btn">一键领取V6隐藏券</a>
-        <button class="copy-btn" onclick="copyText('${v6Link}')">复制V6领券链接</button>
-      </div>
-      <div class="coupon-card">
-        <div class="sub-title">V8新版券池（独立5张券，与V6不冲突）</div>
-        <a href="${v8Link}" target="_blank" class="coupon-btn">一键领取V8隐藏券</a>
-        <button class="copy-btn" onclick="copyText('${v8Link}')">复制V8领券链接</button>
-      </div>
-      <p style="font-size:12px; color:#999; margin-top:10px;">解析方式：前端本地浏览器解析，无服务器拦截</p>
-    `;
-  }catch(err){
-    errBox.innerText = '本地解析失败：'+err.message+'，可复制短链粘贴到普通入口重试';
-    errBox.style.display = 'block';
-    resBox.innerHTML = '';
-  }
-}
-
-// ----------------------原有逻辑：普通链接调用云函数解析----------------------
-function callCloudFunc(){
-  const inputVal = document.getElementById('normalInput').value.trim();
-  const errBox = document.getElementById('errorBox');
-  const resBox = document.getElementById('resultBox');
-  errBox.style.display = 'none';
-  resBox.innerHTML = '<p style="color:#666">云函数正在解析，预计3-5秒...</p>';
-  const urlList = extractAllUrl(inputVal);
-  if(urlList.length === 0){
-    errBox.innerText = '未识别到有效链接';
+    errBox.innerText = '未识别到有效链接，请重新粘贴';
     errBox.style.display = 'block';
     resBox.innerHTML = '';
     return;
   }
   const targetUrl = urlList[0];
-  // 超时重置
   isTimeout = false;
   clearTimeout(timeoutTimer);
   const callbackName = 'jsonp_' + Date.now() + '_' + Math.random().toString(36).slice(2);
   const script = document.createElement('script');
-  // 15秒超时
   timeoutTimer = setTimeout(()=>{
     isTimeout = true;
     document.head.removeChild(script);
     delete window[callbackName];
-    errBox.innerText = '请求超时，请稍后重试';
+    errBox.innerText = '解析超时，请稍后重试';
     errBox.style.display = 'block';
     resBox.innerHTML = '';
-  },15000);
+  },18000);
   window[callbackName] = function(res){
     if(isTimeout) return;
     clearTimeout(timeoutTimer);
@@ -186,7 +108,7 @@ function callCloudFunc(){
     delete window[callbackName];
     if(res.shopId && res.couponUrlV6 && res.couponUrlV8){
       resBox.innerHTML = `
-        <h3>云函数解析成功（普通链接）</h3>
+        <h3>解析成功</h3>
         <p>店铺ID：<strong style="color:#ff7821; font-size:20px">${res.shopId}</strong></p>
         <p style="font-size:12px;color:#999">解析渠道：${res.from}</p>
         <div class="coupon-card">
@@ -201,13 +123,27 @@ function callCloudFunc(){
         </div>
       `;
     }else{
-      errBox.innerText = res.tip || '未识别到店铺ID，小众短链请使用顶部专属入口';
+      errBox.innerText = res.tip || '未识别到店铺ID';
       errBox.style.display = 'block';
       resBox.innerHTML = '';
     }
   };
   script.src = `${CLOUD_URL}?callback=${callbackName}&url=${encodeURIComponent(targetUrl)}`;
   document.head.appendChild(script);
+}
+// 顶部特殊短链点击事件：仅这里检测微信
+function specialParse(){
+  const inputVal = document.getElementById('specialInput').value.trim();
+  // 只有顶部入口才触发微信提示
+  if(isWechat()){
+    alert('微信内置浏览器解析短链存在限制，请点击右上角，选择在系统浏览器打开后重试');
+  }
+  requestCloud(inputVal);
+}
+// 下方普通链接点击事件：不检测微信，微信内可直接使用
+function normalParse(){
+  const inputVal = document.getElementById('normalInput').value.trim();
+  requestCloud(inputVal);
 }
 </script>
 </body>
