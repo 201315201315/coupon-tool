@@ -35,7 +35,6 @@
   <p>粘贴店铺链接，自动查隐藏券</p>
 </div>
 
-<!-- 顶部特殊短链入口：仅点击按钮才检测微信 -->
 <div class="special-box">
   <div class="title">
     <span class="red-dot"></span>特殊短链专属解析入口
@@ -45,7 +44,6 @@
   <p class="desc-tip">自动从文案中提取短链，后台多UA重试解析，兼容所有小众短链域名</p>
 </div>
 
-<!-- 下方普通链接入口：微信环境无任何弹窗，可直接使用 -->
 <div class="normal-box">
   <div class="title">
     <span class="gray-icon">📎</span>普通链接查询
@@ -59,38 +57,37 @@
 <p class="bottom-note">两个领券入口任选，每日合计可领5张商家券</p>
 
 <script>
-// V6/V8双券池固定地址
 const COUPON_V6 = 'https://market.waimai.meituan.com/gd/single.html?shop_id=';
 const COUPON_V8 = 'https://market.waimai.meituan.com/g2/single.html?shop_id=';
-// 固定你的有效云函数地址，不再写错
+// 固定你的云函数地址，无需修改
 const CLOUD_URL = 'https://1446882229-dbqcldfaez.ap-guangzhou.tencentscf.com';
 let timeoutTimer = null;
 let isTimeout = false;
-let isRequestLock = false; // 请求锁，防止重复点击
+let isRequestLock = false;
 
-// 判断是否微信环境
+// 判断微信环境
 function isWechat(){
   return /MicroMessenger/i.test(navigator.userAgent);
 }
 
-// 复制文本通用方法
+// 复制文本
 function copyText(text){
   navigator.clipboard.writeText(text).then(()=>alert('链接复制成功')).catch(()=>alert('复制失败，请手动长按复制'));
 }
 
-// 提取文本内全部http链接，只取第一条
+// 提取所有http链接
 function extractAllUrl(text){
   return text.match(/https?:\/\/[^\s\u4e00-\u9fa5，。、；：！？（）]+/g) || [];
 }
 
-// 统一云函数请求封装
+// 统一云函数请求封装（全局锁防止按钮卡死）
 function requestCloud(rawText){
   const errBox = document.getElementById('errorBox');
   const resBox = document.getElementById('resultBox');
   const specialBtn = document.getElementById('specialBtn');
   const normalBtn = document.getElementById('normalBtn');
 
-  // 重复点击拦截
+  // 重复点击直接拦截
   if(isRequestLock) return;
   const urlList = extractAllUrl(rawText);
   if(urlList.length === 0){
@@ -100,21 +97,18 @@ function requestCloud(rawText){
     return;
   }
   const targetUrl = urlList[0];
-  // 重置页面状态
   errBox.style.display = 'none';
   resBox.innerHTML = '<p style="color:#666">云函数多UA重试解析，预计3-6秒...</p>';
   isTimeout = false;
   isRequestLock = true;
-  // 按钮灰化锁定
   specialBtn.disabled = true;
   normalBtn.disabled = true;
   clearTimeout(timeoutTimer);
 
-  // 生成独立随机回调，避免请求串号
   const callbackName = 'jsonp_' + Date.now() + '_' + Math.random().toString(36).slice(2);
   const script = document.createElement('script');
 
-  // 18秒超时兜底
+  // 18秒超时兜底，强制解锁按钮
   timeoutTimer = setTimeout(()=>{
     isTimeout = true;
     isRequestLock = false;
@@ -131,14 +125,13 @@ function requestCloud(rawText){
   window[callbackName] = function(res){
     if(isTimeout) return;
     clearTimeout(timeoutTimer);
-    // 解锁按钮
+    // 无论成功失败，强制解锁双按钮
     isRequestLock = false;
     specialBtn.disabled = false;
     normalBtn.disabled = false;
     document.head.removeChild(script);
     delete window[callbackName];
 
-    // 解析成功，渲染双券池按钮
     if(res.shopId && res.couponUrlV6 && res.couponUrlV8){
       resBox.innerHTML = `
         <h3>解析成功</h3>
@@ -156,19 +149,17 @@ function requestCloud(rawText){
         </div>
       `;
     }else{
-      // 解析失败，兜底提示+原始链接
       errBox.innerText = res.tip || '未识别到店铺ID，小众dpurl短链请使用顶部专属入口';
       errBox.style.display = 'block';
       resBox.innerHTML = '';
     }
   };
 
-  // 发起JSONP请求
   script.src = `${CLOUD_URL}?callback=${callbackName}&url=${encodeURIComponent(targetUrl)}`;
   document.head.appendChild(script);
 }
 
-// 顶部特殊短链按钮逻辑（严格按你的要求：微信点击弹窗引导切换浏览器）
+// 顶部短链按钮：仅此处触发微信切换提示
 function specialParse(){
   const inputVal = document.getElementById('specialInput').value.trim();
   if(isWechat()){
@@ -178,7 +169,7 @@ function specialParse(){
   requestCloud(inputVal);
 }
 
-// 下方普通链接按钮逻辑（微信无任何弹窗，直接解析）
+// 下方普通链接按钮：微信无任何弹窗，直接解析
 function normalParse(){
   const inputVal = document.getElementById('normalInput').value.trim();
   requestCloud(inputVal);
