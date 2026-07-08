@@ -26,71 +26,38 @@
     <div class="sub-title">粘贴店铺链接，自动查隐藏券</div>
   </div>
   <textarea id="inputText" placeholder="粘贴整段美团外卖分享文案（文字+短链接）"></textarea>
-  <button onclick="runParse()">立即查询</button>
+  <button onclick="parse()">🔍 立即查询</button>
   <div id="resultBox" class="result-box"></div>
-  <p class="tip">全链路云函数解析，普通链接秒过，风控链接智能兜底</p>
-
+  <p class="tip">全链路云函数解析，稳定可靠</p>
   <script>
-    const V8_BASE = "https://offsiteact.meituan.com/web/hoae/collection_waimai_v8/index.html?recallBizId=cpsH5Coupon&bizId=dd7f2bd8f54b472ab349af75a9f62e63&mediumSrc1=dd7f2bd8f54b472ab349af75a9f62e63&scene=CPS_SELF_SRC&pageSrc1=CPS_SELF_OUT_SRC_H5_LINK&pageSrc2=dd7f2bd8f54b472ab349af75a9f62e63&pageSrc3=2ab9837e9eda46d19583c906662cc9ae&activityId=6&mediaPvId=dafkdsajffjafdfs&mediaUserId=10086&outActivityId=6&hoaePageV=8&p=83e980d845644a279e2ff4aefe3bf5e8&poi_id_str=";
+    // 你的成都云函数地址
+    const API = "https://1446882229-59kr0khy8s.ap-chengdu.tencentscf.com";
+    // V6领券入口链接（目前只有一个入口）
     const V6_BASE = "https://offsiteact.meituan.com/web/hoae/collection_waimai_v6/index.html?recallBizId=cpsH5Coupon&bizId=dd7f2bd8f54b472ab349af75a9f62e63&mediumSrc1=dd7f2bd8f54b472ab349af75a9f62e63&scene=CPS_SELF_SRC&pageSrc1=CPS_SELF_OUT_SRC_H5_LINK&pageSrc2=dd7f2bd8f54b472ab349af75a9f62e63&pageSrc3=2ab9837e9eda46d19583c906662cc9ae&activityId=6&mediaPvId=dafkdsajffjafdfs&mediaUserId=10086&outActivityId=6&hoaePageV=8&p=83e980d845644a279e2ff4aefe3bf5e8&poi_id_str=";
-    const CLOUD_URL = "https://1446882229-dbqcldfaez.ap-guangzhou.tencentscf.com";
-    const resultBox = document.getElementById("resultBox");
 
-    // 调用云函数（JSONP方式）
-    function callCloud(text) {
-      return new Promise((resolve) => {
-        const cb = 'jsonp_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
-        const script = document.createElement('script');
-        script.src = `${CLOUD_URL}?url=${encodeURIComponent(text)}&callback=${cb}`;
-        const timer = setTimeout(() => {
-          delete window[cb];
-          script.remove();
-          resolve(null);
-        }, 15000);
-        window[cb] = function(data) {
-          clearTimeout(timer);
-          delete window[cb];
-          script.remove();
-          resolve(data);
-        };
-        document.body.appendChild(script);
-      });
-    }
-
-    // 提取店名（用于展示）
-    function getName(text) {
-      let m = text.match(/「([^」]+)」/);
-      if (!m) m = text.match(/【([^】]+)】/);
-      if (m) return m[1].trim().replace(/^[.·]+/, "");
-      const shopPattern = /([\u4e00-\u9fa5]{2,20}(?:店|馆|铺|咖啡|奶茶|茶饮|烧烤|火锅|小吃|料理|酒楼|餐厅|食堂))/;
-      const shopMatch = text.match(shopPattern);
-      return shopMatch ? shopMatch[1].trim() : "";
-    }
-
-    async function runParse() {
+    async function parse(){
       const text = document.getElementById("inputText").value.trim();
-      resultBox.innerHTML = "⏳ 解析中，请稍候...";
-      if(!text) {
-        resultBox.innerHTML = `<p class="error">❌ 请粘贴完整分享文案</p>`;
+      const r = document.getElementById("resultBox");
+      r.innerHTML = "⏳ 解析中...";
+      if(!text){
+        r.innerHTML = `<p class="error">❌ 请粘贴内容</p>`;
         return;
       }
-
-      const shopName = getName(text);
-      const cloudRes = await callCloud(text);
-
-      if (cloudRes && cloudRes.code === 0) {
-        resultBox.innerHTML = `
-          <p class="success">✅ 解析成功（${cloudRes.parseWay || '云函数解析'}）</p>
-          <p>店铺名称：${cloudRes.shopName || shopName || '未提取到店名'}</p>
-          <p>领券入口V8：<a target="_blank" href="${V8_BASE + cloudRes.shopId}">点我领取</a></p>
-          <p>领券入口V6：<a target="_blank" href="${V6_BASE + cloudRes.shopId}">点我领取</a></p>
-        `;
-      } else {
-        resultBox.innerHTML = `
-          <p class="error">❌ 解析失败，请检查链接或稍后重试</p>
-          <p>提取店名：${shopName || '未提取到店名'}</p>
-          <p>提示：微信内置浏览器有限制，建议用手机系统浏览器打开</p>
-        `;
+      try{
+        const res = await fetch(`${API}?url=${encodeURIComponent(text)}`);
+        const data = await res.json();
+        if(data.code === 0){
+          r.innerHTML = `
+            <p class="success">✅ 查询成功</p>
+            <p>店铺：${data.shopName||''}</p>
+            <p>解析方式：${data.parseWay||''}</p>
+            <p><a target="_blank" href="${data.v6}">👉 点我领取隐藏券</a></p>
+          `;
+        } else {
+          r.innerHTML = `<p class="error">❌ ${data.error||'解析失败'}</p>`;
+        }
+      } catch(e){
+        r.innerHTML = `<p class="error">❌ 网络错误，请重试</p>`;
       }
     }
   </script>
